@@ -1,0 +1,7 @@
+(def sayhi ([e h l o w0]
+     (io o (io l (io l (io e (io h w0)))))
+     ))
+
+('sayhi 69 72 76 79)
+
+-- e:69 h:72 l:76 o:79
