@@ -3,22 +3,22 @@
 
 ** What is it?
 
-*QFL* stands for "Quantum Foobar Language". It is just another useless esoteric
-dweller of the Turing tarpit. It features
+*QFL* stands for "Quantum Foobar Language". It is just another useless Turing
+tarpit. It features
 
  * functional purity
  * literate programming
  * full unicode support
  * minimalism (there are only two operations)
  * weird IO model (different from monads and uniq types)
-   
+
 ** Syntax
 
 It is more simple to describe the syntax of QFL in natural language rather than
 in BNF. There are three keywors: "fu", "bar" and "~" which can be sequenced in
 any order. Everything else is considered comment.
 
-A major feature of QFL is lack of explicit comment syntax, as compiler just
+One major feature of QFL is lack of explicit comment syntax, as compiler just
 ignores everything but "fu", "~" and "bar". It makes literate programming very
 easy and convenient. (Tip: one can substitute 'u' and 'a' by similar Cyrillic
 symbols)
@@ -28,12 +28,12 @@ symbols)
 Compilation is done in one pass. Keyword "fu" pushes the =fu= combinator to the
 top of a stack. Keyword "bar" pushes the =bar= to the stack.  Keyword "~" pops
 two entities, say, =a= (the topmost one) and =b= from the stack, then pushes
-=(ba)= back the stack.
+=(ba)= back to the stack.
 
 An attempt to pop something from an empty stack results in compilation error.
 
 Once EOF is reached, the topmost element of the stack is considered resulting
-program.
+program. Program can't be empty.
 
 ** Control flow
 =fu= is a control flow operator equal to =λ f.(f S) K=
@@ -41,13 +41,12 @@ program.
 ** IO
 *** Output
 =bar= is an output combinator. Its first argument should be a Church numeral
-representing some unicode symbol. The second one should be a value of type
-RealWorld (we call it Ψ). In other words, the following program will print a
-unicode letter with code n in a universe ψ and return universe ψ':
+representing some unicode symbol. The second one should be a value of type Ψ
+(its semantic is similar to Haskell's =RealWorld=). In other words, the
+following program will print a unicode letter with code n in a universe ψ
+and return universe ψ_2:
 
-#+begin_code shell
-bar n ψ~~ 
-#+end_code
+=bar n ψ~~=
 
 QFL doesn't have monads, uniq types nor any other means protecting values of
 type Ψ from being referenced multiple times. But it is not a problem, since QFL
@@ -55,7 +54,7 @@ code is run in a multiverse rather than a universe.
 
 One should perform a measurement (in a quantum sense) to observe the output of a
 QFL program. All measurements, of course, destroy (or reduce) the quantum
-multiword state to a classical single-world one. Consider the following example:
+multiword state to a classical single-world one. Consider the classic example:
 
 /TODO: Cat example/
 

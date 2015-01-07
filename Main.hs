@@ -2,12 +2,9 @@
 {-# LANGUAGE GADTs, StandaloneDeriving, UnicodeSyntax, KindSignatures,
              FlexibleInstances, LambdaCase #-}
 
-module Main (main) where
-
 import Data.Functor
-import Data.List
-import Control.Monad
-import Control.Monad.Writer
+import Control.Monad.IO.Class
+import Control.Monad.Trans.Cont
 import System.Random
 import System.Posix.Signals
 import System.Environment
@@ -53,11 +50,9 @@ s (Â :. n :. ψ @ (Ψ {})) = Â' :. (n :. F (+1) :. N 0) :. ψ
 s (a :. b) = (s a) :. (s b)
 s x = x
 
-eval ∷ MVar Int → T → IO T
-eval i t = takeMVar i >>= \case
-  0 → return t
-  i' | t == t' → return t
-     | otherwise → putMVar i (i'-1) >> eval i t'
+eval ∷ (T → t) → (T → t) → T → t
+eval fp done t | t == t'   = done t
+               | otherwise = fp t'
     where t' = s t
 
 r' ∷ T → [T]
@@ -74,23 +69,29 @@ r t = let t' = r' t in
 
 setMVar v = (tryTakeMVar v >>) . putMVar v
 
-loop ∷ MVar Int → T → IO ()
-loop c t = do
-  putStrLn $ "Waiting for decision: Abort (a), Perform measurement (m)," ++
-             " Continue (c), Run steps (number)"
-  getLine >>= \case
-   "a" → return ()
-   "m" → r t >>= \case
-     Just t'' → loop c t''
-     Nothing → return ()
-   "c" → setMVar c (-1) >> eval c t >>= loop c
-   a → case readsPrec 0 a of
-        (n,_):_ → setMVar c n >> eval c t >>= loop c
-        _ → putStrLn "Not understood." >> loop c t
+loop v f n = callCC $ \done → loop1 done (\fp → f fp done) n
+  where loop2 interrupt f' n = do
+          n' ← liftIO (readMVar v) >>= \case
+            0 → f' interrupt n
+            _ → callCC $ \fp → f' fp n
+          liftIO $ modifyMVar_ v $ (\k → return $ k-1)
+          loop2 interrupt f' n'
+
+        loop1 done f' n = do
+          n' ← callCC $ \int → loop2 int f' n
+          liftIO $ putStrLn "Measure (m) Abort (a) Continue (c) Run steps (number)"
+          (liftIO getLine) >>= \case
+            "a" → f' done n' >> return ()
+            "c" → liftIO $ setMVar v (-1)
+            a → case readsPrec 0 a of
+                   (n,_):_ → liftIO $ setMVar v n
+                   _ → liftIO $ putStrLn "Not understood."
+          loop1 done f' n'
 
 main ∷ IO ()
 main = do
-  cnt ← newEmptyMVar
+  cnt ← newMVar $ -1
   installHandler keyboardSignal (Catch $ setMVar cnt (-1)) Nothing
   t ← parse <$> (readFile =<< head <$> getArgs)
-  loop cnt t
+  (r =<<) $ evalContT $ loop cnt eval t
+  return ()
