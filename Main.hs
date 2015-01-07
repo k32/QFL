@@ -1,7 +1,9 @@
 {- Quantum Fubar Language -}
+{- This code intentionally was made cryptic -}
 {-# LANGUAGE GADTs, StandaloneDeriving, UnicodeSyntax, KindSignatures,
              FlexibleInstances, LambdaCase #-}
 
+import System.Exit
 import Data.Functor
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Cont
@@ -63,9 +65,12 @@ r' _ = []
 
 r ∷ T → IO (Maybe T)
 r t = let t' = r' t in
-  ((t' !!) <$> randomRIO (0, length t' - 1)) >>= \case
-    Ψ{σ = s}      → putStrLn (reverse s) >> return Nothing
-    t :. Ψ{σ = s} → putStrLn (reverse s) >> return (Just t)
+  case t' of
+   [] → return Nothing
+   _  → ((t' !!) <$> randomRIO (0, length t' - 1)) >>= \case
+          Ψ{σ = s} → putStrLn (reverse s) >> return Nothing
+          t0 @ (t :. Ψ{σ = s}) → print t0 >>
+            putStrLn (reverse s) >> return (Just t0)
 
 setMVar v = (tryTakeMVar v >>) . putMVar v
 
@@ -83,6 +88,9 @@ loop v f n = callCC $ \done → loop1 done (\fp → f fp done) n
           (liftIO getLine) >>= \case
             "a" → f' done n' >> return ()
             "c" → liftIO $ setMVar v (-1)
+            "m" → liftIO (r n') >>= \case
+              Nothing → liftIO exitSuccess
+              Just n'' → loop1 done f' n'' >> return ()
             a → case readsPrec 0 a of
                    (n,_):_ → liftIO $ setMVar v n
                    _ → liftIO $ putStrLn "Not understood."
@@ -90,8 +98,14 @@ loop v f n = callCC $ \done → loop1 done (\fp → f fp done) n
 
 main ∷ IO ()
 main = do
-  cnt ← newMVar $ -1
+  (file, n) ← getArgs >>= \case
+    [f] → return (f, -1)
+    ["-s", n, f] → case readsPrec 0 n of
+                    (n',_):_ → return (f, n')
+                    _ → error "Number of steps should be a number"
+    _ → error "Insufficient arguments. Expected [-s NUMBER_OF_STEPS] FILE"
+  cnt ← newMVar n
   installHandler keyboardSignal (Catch $ setMVar cnt (-1)) Nothing
-  t ← parse <$> (readFile =<< head <$> getArgs)
+  t ← parse <$> readFile file
   (r =<<) $ evalContT $ loop cnt eval t
   return ()
