@@ -46,7 +46,7 @@ representing some unicode symbol. The second one should be a value of type Ψ
 following program will print a unicode letter with code n in a universe ψ
 and return universe ψ_2:
 
-=bar n ψ~~=
+=bar n~ ψ~=
 
 QFL doesn't have monads, uniq types nor any other means protecting values of
 type Ψ from being referenced multiple times. But it is not a problem, since QFL

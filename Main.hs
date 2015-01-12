@@ -1,5 +1,5 @@
 {- Quantum Fubar Language -}
-{- This code intentionally was made cryptic -}
+{- This code intentionally was made slightly cryptic -}
 {-# LANGUAGE GADTs, StandaloneDeriving, UnicodeSyntax, KindSignatures,
              FlexibleInstances, LambdaCase #-}
 
@@ -102,10 +102,10 @@ main = do
     [f] → return (f, -1)
     ["-s", n, f] → case readsPrec 0 n of
                     (n',_):_ → return (f, n')
-                    _ → error "Number of steps should be a number"
+                    _ → error "Argument of -s should be a number"
     _ → error "Insufficient arguments. Expected [-s NUMBER_OF_STEPS] FILE"
   cnt ← newMVar n
-  installHandler keyboardSignal (Catch $ setMVar cnt (-1)) Nothing
+  installHandler keyboardSignal (Catch $ setMVar cnt 0) Nothing
   t ← parse <$> readFile file
   (r =<<) $ evalContT $ loop cnt eval t
   return ()
