@@ -1,14 +1,15 @@
 {- Quantum Fubar Language -}
 {- This code intentionally was made slightly cryptic -}
 {-# LANGUAGE GADTs, StandaloneDeriving, UnicodeSyntax, KindSignatures,
-             FlexibleInstances, LambdaCase #-}
-
+             FlexibleInstances, LambdaCase, CPP #-}
 import System.Exit
 import Data.Functor
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Cont
 import System.Random
+#ifdef __unix__
 import System.Posix.Signals
+#endif
 import System.Environment
 import Control.Concurrent.MVar
 
@@ -57,9 +58,12 @@ eval fp done t | t == t'   = done t
                | otherwise = fp t'
     where t' = s t
 
-r' ∷ T → [T]
-r' ψ@(Ψ {}) = [ψ]
-r' t@(_ :. Ψ {}) = [t]
+ψs a@Ψ{} = [a]
+ψs (a:.b) = ψs a ++ ψs b
+ψs _ = []
+
+r' ∷ T → [T]   -- Very inefficient; should be rewritten
+r' a | 1 == length (ψs a) = [a]
 r' (a :. b) = r' a ++ r' b
 r' _ = []
 
@@ -69,8 +73,7 @@ r t = let t' = r' t in
    [] → return Nothing
    _  → ((t' !!) <$> randomRIO (0, length t' - 1)) >>= \case
           Ψ{σ = s} → putStrLn (reverse s) >> return Nothing
-          t0 @ (t :. Ψ{σ = s}) → print t0 >>
-            putStrLn (reverse s) >> return (Just t0)
+          t'' → putStrLn (reverse . σ . head . ψs $ t'') >> return (Just t'')
 
 setMVar v = (tryTakeMVar v >>) . putMVar v
 
@@ -105,7 +108,9 @@ main = do
                     _ → error "Argument of -s should be a number"
     _ → error "Insufficient arguments. Expected [-s NUMBER_OF_STEPS] FILE"
   cnt ← newMVar n
+#ifdef __unix__
   installHandler keyboardSignal (Catch $ setMVar cnt 0) Nothing
+#endif
   t ← parse <$> readFile file
   (r =<<) $ evalContT $ loop cnt eval t
   return ()
