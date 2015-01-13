@@ -58,22 +58,21 @@ eval fp done t | t == t'   = done t
                | otherwise = fp t'
     where t' = s t
 
-ψs a@Ψ{} = [a]
+ψs a@Ψ{σ=s} = [(a, s)]
 ψs (a:.b) = ψs a ++ ψs b
 ψs _ = []
 
-r' ∷ T → [T]   -- Very inefficient; should be rewritten
-r' a | 1 == length (ψs a) = [a]
+r' ∷ T → [(T, String)]   -- Very inefficient; should be rewritten
+r' a | null t = [(a, s)] where ((_, s):t) = ψs a
 r' (a :. b) = r' a ++ r' b
 r' _ = []
 
 r ∷ T → IO (Maybe T)
-r t = let t' = r' t in
-  case t' of
-   [] → return Nothing
-   _  → ((t' !!) <$> randomRIO (0, length t' - 1)) >>= \case
-          Ψ{σ = s} → putStrLn (reverse s) >> return Nothing
-          t'' → putStrLn (reverse . σ . head . ψs $ t'') >> return (Just t'')
+r t = case r' t of
+        [] → return Nothing
+        t' → ((t' !!) <$> randomRIO (0, length t' - 1)) >>= \case
+           (Ψ{}, s) → putStrLn (reverse s) >> return Nothing
+           (t'', s) → putStrLn (reverse s) >> return (Just t'')
 
 setMVar v = (tryTakeMVar v >>) . putMVar v
 
