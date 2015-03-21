@@ -36,7 +36,7 @@ Once EOF is reached, the topmost element of the stack is considered resulting
 program. Program can't be empty.
 
 ** Control flow
-=fu= is a control flow operator equal to =λ f.(f S) K=
+=fu= is a control flow operator equal to =λf.fSK=
 
 ** IO
 *** Output
@@ -54,14 +54,18 @@ code is run in a multiverse rather than a universe.
 
 One should perform a measurement (in a quantum sense) to observe the output of a
 QFL program. All measurements, of course, destroy (or reduce) the quantum
-multiword state to a classical single-world one. Consider the classic example:
+multiword state to a classical single-world one. Consider the classical example
+illustrating this important property (pseudocode):
 
-/TODO: Cat example/
+#+begin_src fubar
+fufufufufu~~~~fufufufu~~~fufufufufu~~~~fufufufufu~~~~fufufufu~~~ 'io alive' ~~fufu~~~fufufufufu~~~~fufufufu~~~ 'io dead' ~~fufu~~~~~fufufufu
+fu~~~~fufufufu~~~ 'io cat' ~~fufu~~~
+#+end_src
 
 *** Input
-"But there is no input..." Wrong. QFL *has* input, but it is rather unusual.
-
-/TODO: Describe input/
+"But there is no input..." Wrong. QFL /has/ input, but it is rather
+unusual. Hint: one should just try to appear in the Universe where the needed
+input has been already typed.
 
 ** Runtime error handling
 There are no runtime errors. A QFL VM just tries to reduce everything it
