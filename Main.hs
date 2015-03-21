@@ -1,7 +1,7 @@
 {- Quantum Fubar Language -}
 {- This code intentionally was made slightly cryptic -}
 {-# LANGUAGE GADTs, StandaloneDeriving, UnicodeSyntax, KindSignatures,
-             FlexibleInstances, LambdaCase, CPP #-}
+             FlexibleInstances, LambdaCase, CPP, BangPatterns #-}
 import System.Exit
 import Data.Functor
 import Control.Monad.IO.Class

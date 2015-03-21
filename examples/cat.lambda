@@ -1,0 +1,10 @@
+(def cat
+     ([w] (io &t (io &a (io &c w)))))
+
+(def dead
+     ([w] (io &d (io &a (io &e (io &d w))))))
+
+(def alive
+     ([w] (io &e (io &v (io &i (io &l (io &a w)))))))
+
+([w] (([w1] (('dead w1) ('alive w1))) ('cat w)))

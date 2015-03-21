@@ -9,9 +9,9 @@ import Control.Monad.Random
 
 type Id = String
 
-data SKI = S | K | I | SKIW | App SKI SKI | Var Id deriving (Show, Eq)
-data Lambda =  LVar Id | LApp [Lambda] | LW | Abs [Id] Lambda deriving (Show, Eq)
-data R = U | W | R :. R deriving (Show)
+data SKI = SSmth String | S | K | I | SKIW | App SKI SKI | Var Id deriving (Show, Eq)
+data Lambda = LSmth String | LVar Id | LApp [Lambda] | LW | Abs [Id] Lambda deriving (Show, Eq)
+data R = RSmth String | U | W | R :. R deriving (Show)
 
 fv (Var id) = [id]
 fv (App e1 e2) = fv e1 ++ fv e2
@@ -24,6 +24,8 @@ lambda2ski LW = SKIW
 lambda2ski (LVar id) = Var id
 lambda2ski (LApp [e1, e2]) = App (lambda2ski e1) (lambda2ski e2)
 lambda2ski (Abs [id] term) = lamb id $ lambda2ski term
+lambda2ski (LSmth s) = SSmth s
+lambda2ski a = error $ show a
 
 lamb id term | not (id `freeIn` term) = App K term
 lamb id (Var id') | id == id' = I
@@ -35,6 +37,8 @@ ski2iot S = U :. (U :. (U :. (U :. U)))
 ski2iot K = U :. (U :. (U :. U))
 ski2iot I = U :. U
 ski2iot (App a b) = ski2iot a :. ski2iot b
+ski2iot (SSmth s) = (RSmth s)
+ski2iot a = error $ show a
 
 l2r = ski2iot . lambda2ski
 
@@ -81,16 +85,22 @@ desugar x = x
 
 pLam :: Parsec String (M.Map String Lambda) Lambda
 pLam = try pAbs <|>
-       try pLiteral <|>
+       try (lexeme tp pLiteral) <|>
        try (mkChurch <$> natural tp) <|> -- TODO: Move to desugar
        try pW  <|>
+       try (lexeme tp pSomething) <|>
        pVar <|>
        pApp <|>
        pFun
   where
-    pLiteral = do
+    pSomething = do
       char '"'
-      c <- alphaNum
+      c <- many1 alphaNum
+      char '"'
+      return $ LSmth c
+    pLiteral = do
+      char '&'
+      c <- anyChar
       return $ mkChurch $ fromIntegral $ fromEnum c
     pFun = do
       i <- char '\'' >> identifier tp
@@ -113,6 +123,7 @@ main :: IO ()
 main = putStrLn =<< transform =<< getContents
 
 pprint :: MonadRandom m => R -> m String
+pprint (RSmth s) = return $ concat [" \'", s, "\' "]
 pprint W = return "bar"
 pprint U = pprint1 U
 pprint (a :. b) = do
