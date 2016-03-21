@@ -1,15 +1,11 @@
-{- Quantum Fubar Language -}
 {- This code intentionally was made slightly cryptic -}
 {-# LANGUAGE GADTs, StandaloneDeriving, UnicodeSyntax, KindSignatures,
-             FlexibleInstances, LambdaCase, CPP, BangPatterns #-}
+             FlexibleInstances, LambdaCase, BangPatterns #-}
 import System.Exit
 import Data.Functor
-import Control.Monad.IO.Class
-import Control.Monad.Trans.Cont
+import Control.Monad.Cont
 import System.Random
-#ifdef __unix__
 import System.Posix.Signals
-#endif
 import System.Environment
 import Control.Concurrent.MVar
 
@@ -21,21 +17,18 @@ instance Eq (Int → Int) where
 infixl 7 :.
 
 data T ∷ * where {J, Â, Â', S, K ∷ T; (:.) ∷ T → T → T; Ψ ∷ {σ ∷ String} → T
-                 ;F ∷ (Int → Int) → T; N ∷ Int → T; Ø ∷ String → T}
+                 ;F ∷ (Int → Int) → T; N ∷ Int → T}
 deriving instance Show T
 deriving instance Eq T
 
-parse ∷ String → T
-parse = flip parse2 []
-
-parse2 ∷ String → [T] → T
-parse2 ('f':'u':c) t = parse2 c (J:t)
-parse2 ('b':'a':'r':c) t = parse2 c (Â:t)
-parse2 ('~':c) (a:b:t) = parse2 c (b:.a:t)
-parse2 ('~':_) _ = error "Parse error: missing operand(s)"
-parse2 (_:c) t = parse2 c t
-parse2 [] (h:_) = h :. Ψ []
-parse2 [] [] = error "Parse error: empty program"
+parse ∷ String → [T] → T
+parse ('f':'u':c) t = parse c (J:t)
+parse ('b':'a':'r':c) t = parse c (Â:t)
+parse ('~':c) (a:b:t) = parse c (b:.a:t)
+parse ('~':_) _ = error "Parse error: missing operand(s)"
+parse (_:c) t = parse c t
+parse [] (h:_) = h :. Ψ []
+parse [] [] = error "Parse error: empty program"
 
 s ∷ T → T
 -- Control flow combinators
@@ -107,9 +100,6 @@ main = do
                     _ → error "Argument of -s should be a number"
     _ → error "Insufficient arguments. Expected [-s NUMBER_OF_STEPS] FILE"
   cnt ← newMVar n
-#ifdef __unix__
   installHandler keyboardSignal (Catch $ setMVar cnt 0) Nothing
-#endif
-  t ← parse <$> readFile file
-  (r =<<) $ evalContT $ loop cnt eval t
-  return ()
+  t ← (flip parse) [] <$> readFile file
+  void $ (`runContT` r) $ loop cnt eval t
