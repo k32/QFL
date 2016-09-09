@@ -8,67 +8,97 @@ tarpit. QFL features
 
  * functional purity
  * literate programming
- * full unicode support
- * minimalism (there are only two operations)
- * weird IO model (different from monads and uniq types)
+ * full support of Unicode
+ * minimalism (there are only two combinators)
+ * weird I/O model (different from monads and uniq types)
 
 ** Syntax
 
-It is simpler to describe the syntax of QFL in natural language rather than
-BNF. There are three keywors: =fu=, =bar= and =~=, which can be sequenced in any
-order. Everything else is ignored.
+It is simpler to describe the syntax of QFL in natural language rather
+than in BNF. There are three keywords: =fu=, =bar= and =~=, which can
+be sequenced in any order. Everything else is ignored.
 
-One major feature of QFL is lack of explicit comment syntax, as compiler just
-ignores everything but "fu", "~" and "bar". It makes literate programming very
-easy and convenient.
+One major feature of QFL is lack of explicit comment syntax, as
+compiler just ignores everything but "fu", "~" and "bar". It makes
+literate programming very easy and convenient.
+
+Protip: one can replace =a= and =u= with similar looking Cyrillic
+letters to comment out the reserved words.
 
 ** Compilation
 
-Compilation is done in one pass. Keyword "fu" pushes =fu= combinator to the top
-of a stack. Keyword "bar" pushes =bar= to the stack.  Keyword "~" pops two
-entities, say, =a= (the topmost one) and =b= from the stack, then pushes =(ba)=
-back to the stack.
+Compilation is done in one pass. Keyword "fu" pushes =fu= combinator
+to the top of a stack. Keyword "bar" pushes =bar= to the stack.
+Keyword "~" pops two entities, say, =a= (the topmost one) and =b= from
+the stack, then pushes =(ba)= back to the stack.
 
-An attempt to pop something when the stack is empty results in a compilation
-error.
+An attempt to pop something when the stack is empty results in a
+compilation error.
 
-Once EOF is reached, the topmost element of the stack is considered resulting
-program. The program can't be empty.
+Once EOF is reached, the topmost stack element is considered resulting
+program which is executed immediately. The program can't be empty.
+
+** Runtime
+
+This QFL distrubution includes a powerful interactive
+environment. Sending interruption signal to a running QFL program will
+open a menu containing options related to the execution. One can
+measure the program state (destroying the other states), run N more
+reductions (see below why is it important) and abort execution.
 
 ** Control flow
-=fu= is a control flow operator. It is equal to =λf.fSK=
+=fu= is a control flow operator equal to =λf.fSK=
 
-** IO
+** I/O
 *** Output
-=bar= combinator is used for the output. Its first argument should be a Church
-numeral representing some unicode symbol. The second one should be a value of
-type Ψ (its semantic is similar to Haskell's =RealWorld=). In other words, the
-following program will print a unicode letter with code n in a universe ψ and
-return universe ψ_2:
+=bar= combinator is used for the output. Its first argument should be
+a Church numeral representing a Unicode symbol. The second one should
+be a value of type Ψ. The value of type Ψ denotes a Universe.
+
+In other words, the following program will print a unicode letter with
+code n in a universe ψ and return universe ψ_2:
 
 =bar n~ ψ~=
 
-QFL doesn't have monads, uniq types nor any other means protecting values of
-type Ψ from being referenced multiple times. But it is not a problem, since QFL
-code is run in a multiverse rather than a universe.
+The concept of universe is widely known in the functional
+programming. For example Haskell uses it internally as a placeholder
+instantiating ST monad. QFL, however, does not have monads, uniqueness
+types nor other means protecting values of type Ψ from being
+dereferenced multiple times. Usually it's a problem, because
+dereferencing the same RealWorld variable twice leads to problems:
 
-One should perform a measurement (in the quantum sense) to observe the output of
-a QFL program. All measurements, of course, destroy (or reduce) the quantum
-multiword state to the classical single-world one. Consider the classical
-example illustrating this important property (pseudocode):
+#+BEGIN_SRC haskell
+impossible ψ = do
+  putStrLn ψ "Cat is dead"
+  putStrLn ψ "Cat is alive"
+#+END_SRC
+
+Note that we first print "Cat is dead" message, but then take the
+snapshot of the computer memory and screen together with the state of
+the user's mind at the moment when the first message was not printed
+yet and print another message.
+
+But it is not a problem, since QFL code is run in a multiverse rather
+than a universe.
+
+One should perform a measurement (in the quantum sense) to observe the
+output of a QFL program. All measurements, of course, destroy the
+quantum multi-word state and reduce it to a classical single-world
+one. Consider the classical example illustrating this important
+property (pseudo-code):
 
 #+begin_src fubar
 fufufufufu~~~~
 fufufufu~~~
 fufufufufu~~~~
 fufufufufu~~~~
-fufufufu~~~ <io alive> ~~
+fufufufu~~~ <print alive> ~~
 fufu~~~
 fufufufufu~~~~
-fufufufu~~~ <io dead> ~~
+fufufufu~~~ <print dead> ~~
 fufu~~~~~fufufufu
 fu~~~~
-fufufufu~~~ <io cat> ~~
+fufufufu~~~ <print cat> ~~
 fufu~~~
 #+end_src
 
@@ -78,5 +108,6 @@ unusual. Hint: one should just try to appear in the Universe where the needed
 input has been already typed.
 
 ** Runtime error handling
-There are no runtime errors. A QFL VM just tries to reduce everything it
-can. When it encounters a term which cannot be reduced, it just leaves it be.
+There are no runtime errors. A QFL VM just tries to reduce everything
+it can. When it encounters a term which cannot be reduced, it just
+leaves it untouched.

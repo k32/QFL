@@ -1,4 +1,3 @@
-{- This code intentionally was made slightly cryptic -}
 {-# LANGUAGE GADTs, StandaloneDeriving, UnicodeSyntax, KindSignatures,
              FlexibleInstances, LambdaCase, BangPatterns #-}
 import System.Exit
@@ -21,28 +20,22 @@ data T ∷ * where {J, Â, Â', S, K ∷ T; (:.) ∷ T → T → T; Ψ ∷ {σ �
 deriving instance Show T
 deriving instance Eq T
 
-parse ∷ String → [T] → T
-parse ('f':'u':c) t = parse c (J:t)
-parse ('b':'a':'r':c) t = parse c (Â:t)
-parse ('~':c) (a:b:t) = parse c (b:.a:t)
-parse ('~':_) _ = error "Parse error: missing operand(s)"
-parse (_:c) t = parse c t
-parse [] (h:_) = h :. Ψ []
-parse [] [] = error "Parse error: empty program"
+parse ∷ [T] → String → T
+parse t ('f':'u':c) = parse (J:t) c
+parse t ('b':'a':'r':c) = parse (Â:t) c
+parse (a:b:t) ('~':c)  = parse (b:.a:t) c
+parse t (_:c) = parse t c
+parse (h:_) [] = h :. Ψ []
+parse [] [] = error "Parsing error"
 
 s ∷ T → T
--- Control flow combinators
 s (J :. x) = (x :. S) :. K
 s (K :. x :. _) = x
 s (S :. x :. y :. z) = (x :. z) :. (y :. z)
--- Church to int conversion
 s (F f :. N i) = N $ f i
 s (F f :. F g) = F $ f . g
--- IO
 s (Â' :. N i :. ψ @ (Ψ {})) = ψ {σ = toEnum i : σ ψ}
--- Using Â → Â' to indicate that Church → Int conversion has been started
 s (Â :. n :. ψ @ (Ψ {})) = Â' :. (n :. F (+1) :. N 0) :. ψ
--- Other cases
 s (a :. b) = (s a) :. (s b)
 s x = x
 
@@ -91,7 +84,6 @@ loop v f n = callCC $ \done → loop1 done (\fp → f fp done) n
                    _ → liftIO $ putStrLn "Not understood."
           loop1 done f' n'
 
-main ∷ IO ()
 main = do
   (file, n) ← getArgs >>= \case
     [f] → return (f, -1)
@@ -101,5 +93,4 @@ main = do
     _ → error "Insufficient arguments. Expected [-s NUMBER_OF_STEPS] FILE"
   cnt ← newMVar n
   installHandler keyboardSignal (Catch $ setMVar cnt 0) Nothing
-  t ← (flip parse) [] <$> readFile file
-  void $ (`runContT` r) $ loop cnt eval t
+  void $ (`runContT` r) <$> (loop cnt eval) =<< (parse [] <$> readFile file)
